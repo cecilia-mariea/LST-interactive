@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="styles.css" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Land Surface Temperatures</title>
+  </head>
+  <body>
+    <header>
+      <h1>
+        Land Surface Temperature Across the Continguous United States in 2024
+      </h1>
+    </header>
+    <h2 id="date"></h2>
+    <input
+      type="range"
+      id="date-slider"
+      min="1"
+      max="31"
+      value="1"
+      name="Date"
+    />
+    <label for="date-slider">Select date</label>
+    <div id="map">
+      <svg id="map-window"></svg>
+    </div>
+    <script src="./global.js" type="module"></script>
+  </body>
+</html>

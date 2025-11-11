@@ -1,0 +1,20 @@
+html {
+  --accent-color: #f88379;
+}
+body {
+  font: 100%/1.5 system-ui;
+  max-width: 100ch;
+  margin-inline: auto;
+
+  header {
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-color);
+    height: 0.5rem;
+    border-radius: 0.25rem;
+  }
+}
