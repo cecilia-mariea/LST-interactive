@@ -30,7 +30,7 @@ def get_goes18_2024(product, cache_dir="./cache_datasets", output_dir="./lib"):
     fs = s3fs.S3FileSystem(anon=True) 
     daily_means_list = []
 
-    for jday in range(1, 32):  # example: first day
+    for jday in range(32, 366):  # example: first day
         bucket_prefix = f"s3://noaa-goes18/{product}/{year}/{jday:03d}"
         file_keys = fs.glob(f"{bucket_prefix}/*/*.nc")
 
