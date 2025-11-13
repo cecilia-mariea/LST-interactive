@@ -34,10 +34,10 @@ function displayDate(jDay) {
 }
 
 // load data
-const numDays = 129;
+const numDays = 129; // number of total files
 async function preloadData() {
   const filePromises = d3.range(1, numDays + 1).map((day) => {
-    const path = `./lib_filtered/2024_${String(day).padStart(3, "0")}_LST.json`;
+    const path = `./lib/2024_${String(day).padStart(3, "0")}_LST.json`;
     return d3
       .json(path)
       .then((file) => ({

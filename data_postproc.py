@@ -12,7 +12,7 @@ minx, maxx = -140, -65
 miny, maxy = 20, 55
 
 # Fraction of points to keep
-sample_fraction = 0.8
+sample_fraction = 1; 
 
 # Loop through all JSON files
 for json_file in input_dir.glob("2024_*.json"):
