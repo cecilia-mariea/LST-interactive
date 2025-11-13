@@ -27,6 +27,7 @@ body {
   }
 
   svg {
+    padding: 1em;
     width: 800px;
     height: 500px;
   }

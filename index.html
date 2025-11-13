@@ -13,18 +13,19 @@
       </h1>
     </header>
     <h2 id="date"></h2>
-    <input
-      type="range"
-      id="date-slider"
-      min="1"
-      max="129"
-      value="1"
-      name="Date"
-    />
-    <label for="date-slider">(Select date)</label>
-    <div id="map">
-      <svg id="map-window"></svg>
-    </div>
+    <label>
+      <em> Select date: </em>
+      <input
+        type="range"
+        id="date-slider"
+        min="1"
+        max="129"
+        value="1"
+        name="Date"
+    /></label>
+    <canvas id="mapCanvas" width="800" height="500"></canvas>
+    <svg id="legend"></svg>
+    <svg id="lineGraph"></svg>
     <script src="./global.js" type="module"></script>
   </body>
 </html>

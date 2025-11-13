@@ -2,9 +2,10 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 
 // config
 let dayToDisplay = 1; // in julian days
-const width = 800;
-const height = 500;
-const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+const canvas = document.getElementById("mapCanvas");
+const context = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
 
 const minx = -140,
   maxx = -65;
@@ -12,14 +13,8 @@ const miny = 20,
   maxy = 55;
 
 //  useable area
-const x = d3
-  .scaleLinear()
-  .domain([minx, maxx])
-  .range([margin.left, width - margin.right]);
-const y = d3
-  .scaleLinear()
-  .domain([miny, maxy])
-  .range([height - margin.bottom, margin.top]);
+const x = d3.scaleLinear().domain([minx, maxx]).range([0, width]);
+const y = d3.scaleLinear().domain([miny, maxy]).range([height, 0]);
 
 // data formating
 function convertDate(jDay) {
@@ -55,68 +50,23 @@ async function preloadData() {
   return results.filter((d) => d !== null);
 }
 
-// start map render
-const svg = d3.select("svg");
-
-svg
-  .append("defs")
-  .append("clipPath")
-  .attr("id", "clip")
-  .append("rect")
-  .attr("x", x(minx))
-  .attr("y", y(maxy))
-  .attr("width", x(maxx) - x(minx))
-  .attr("height", y(miny) - y(maxy));
-
-// axes
-const xAxis = d3.axisBottom(x).ticks(10);
-const yAxis = d3.axisLeft(y).ticks(5);
-
-svg
-  .append("g")
-  .attr("transform", `translate(0,${height - margin.bottom})`)
-  .call(xAxis);
-
-svg.append("g").attr("transform", `translate(${margin.left},0)`).call(yAxis);
-
-const mapGroup = svg.append("g").attr("clip-path", "url(#clip)");
-
 // Use a fixed color domain (Kelvin)
 const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([250, 300]);
 
-// load map
-function renderMap(day) {
-  const dayEntry = allData.find((d) => d.day === day);
-  if (!dayEntry) return;
-  let data = dayEntry.data;
+// map
+function drawCanvas(data) {
+  context.clearRect(0, 0, width, height);
   const rectSize = 8;
-  const rects = mapGroup
-    .selectAll("rect")
-    .data(data, (d) => `${d.lon}, ${d.lat}`);
-
-  rects.join(
-    (enter) =>
-      enter
-        .append("rect")
-        .attr("x", (d) => d.screenX)
-        .attr("y", (d) => d.screenY)
-        .attr("width", rectSize)
-        .attr("height", rectSize)
-        .attr("fill", (d) => color(d.LST)),
-    (update) =>
-      update
-        .transition()
-        .duration(25)
-        .attr("fill", (d) => color(d.LST)),
-    (exit) => exit.remove()
-  );
+  data.forEach((d) => {
+    context.fillStyle = color(d.LST);
+    context.fillRect(x(d.lon), y(d.lat), rectSize, rectSize);
+  });
 }
-
 // update day
 function update(newDay) {
   displayDate(newDay);
-  renderMap(newDay);
-  dayToDisplay = newDay;
+  const dayEntry = allData.find((d) => d.day === newDay);
+  if (dayEntry) drawCanvas(dayEntry.data);
 }
 
 // input slider
@@ -127,16 +77,13 @@ d3.select("#date-slider").on("input", function () {
 
 // legend
 function drawLegend(color) {
-  const legendWidth = 300;
-  const legendHeight = 10;
+  const legendWidth = 350;
+  const legendHeight = 30;
 
-  const legendSvg = svg
-    .append("g")
-    .attr("id", "legend")
-    .attr(
-      "transform",
-      `translate(${width - legendWidth - 50}, ${height - 40})`
-    );
+  const legendSvg = d3
+    .select("#legend")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight);
 
   // Create a linear gradient
   const defs = legendSvg.append("defs");
@@ -180,18 +127,12 @@ function drawLegend(color) {
     .attr("transform", `translate(0,${legendHeight})`)
     .call(legendAxis);
 }
-drawLegend(color);
 
 let allData = [];
 // init
 async function init() {
   allData = await preloadData();
-  allData.forEach((day) => {
-    day.data.forEach((d) => {
-      d.screenX = x(d.lon);
-      d.screenY = y(d.lat);
-    });
-  });
+  drawLegend(color);
   update(dayToDisplay);
 }
 
