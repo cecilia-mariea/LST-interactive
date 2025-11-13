@@ -53,6 +53,50 @@ async function preloadData() {
 // Use a fixed color domain (Kelvin)
 const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([250, 300]);
 
+//drawing us overlay
+async function drawUSOverlay() {
+  try {
+    const us = await d3.json("us_lower_48.geo.json");
+    
+    const overlaySvg = d3.select("#overlay");
+    overlaySvg.html("");
+    
+    // Use a projection that fits the CONUS better
+    const projection = d3.geoIdentity()
+      .reflectY(true) // Don't flip Y-axis
+      .fitExtent([[10, 10], [width - 10, height - 10]], us); // Fit with some padding
+    
+    const path = d3.geoPath().projection(projection);
+    
+    // Draw US states
+    overlaySvg.selectAll(".state")
+      .data(us.features)
+      .enter()
+      .append("path")
+      .attr("class", "us-overlay")
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "#333")
+      .attr("stroke-width", 1)
+      .style("opacity", 0.8);
+    
+    console.log("US overlay drawn successfully");
+      
+  } catch (error) {
+    console.error("Error loading US overlay:", error);
+    // Fallback: draw a simple rectangle to test
+    const overlaySvg = d3.select("#overlay");
+    overlaySvg.append("rect")
+      .attr("x", 50)
+      .attr("y", 50)
+      .attr("width", 100)
+      .attr("height", 100)
+      .attr("fill", "red")
+      .attr("opacity", 0.5);
+  }
+}
+
+
 // map
 function drawCanvas(data) {
   context.clearRect(0, 0, width, height);
@@ -62,18 +106,121 @@ function drawCanvas(data) {
     context.fillRect(x(d.lon), y(d.lat), rectSize, rectSize);
   });
 }
-// update day
-function update(newDay) {
-  displayDate(newDay);
-  const dayEntry = allData.find((d) => d.day === newDay);
-  if (dayEntry) drawCanvas(dayEntry.data);
+
+function calculateMeanTemperatures(allData) {
+  return allData.map(dayData => {
+    const temps = dayData.data.map(d => d.LST);
+    const meanTemp = d3.mean(temps);
+    return {
+      day: dayData.day,
+      date: convertDate(dayData.day),
+      meanTemp: meanTemp,
+      julianDate: dayData.day
+    };
+  });
 }
 
-// input slider
-d3.select("#date-slider").on("input", function () {
-  const newDay = +this.value;
-  update(newDay);
-});
+// line graph
+function drawLineGraph(meanTemps) {
+  const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+  const graphWidth = 800 - margin.left - margin.right;
+  const graphHeight = 300 - margin.top - margin.bottom;
+
+  const svg = d3.select("#lineGraph")
+    .attr("width", 800)
+    .attr("height", 300)
+    .html("");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  //scales
+  const xScale = d3.scaleLinear()
+    .domain([1, 129])
+    .range([0, graphWidth]);
+
+  const yScale = d3.scaleLinear()
+    .domain([d3.min(meanTemps, d => d.meanTemp) - 2, d3.max(meanTemps, d => d.meanTemp) + 2])
+    .range([graphHeight, 0]);
+
+  //line
+  const line = d3.line()
+    .x(d => xScale(d.day))
+    .y(d => yScale(d.meanTemp))
+    .curve(d3.curveMonotoneX);
+
+  // draw line
+  g.append("path")
+    .datum(meanTemps)
+    .attr("class", "temperature-line")
+    .attr("d", line)
+    .attr("fill", "none")
+    .attr("stroke", "#f88379")
+    .attr("stroke-width", 2);
+
+  // data points
+  g.selectAll(".temp-point")
+    .data(meanTemps)
+    .enter()
+    .append("circle")
+    .attr("class", "temp-point")
+    .attr("cx", d => xScale(d.day))
+    .attr("cy", d => yScale(d.meanTemp))
+    .attr("r", 3)
+    .attr("fill", "#f88379")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1);
+
+  // axes
+  const xAxis = d3.axisBottom(xScale)
+    .tickFormat(d => convertDate(d).split(' ')[0]); 
+
+  const yAxis = d3.axisLeft(yScale)
+    .tickFormat(d => `${d.toFixed(1)} K`);
+g.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${graphHeight})`)
+    .call(xAxis)
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", graphWidth / 2)
+    .attr("y", 35)
+    .attr("fill", "black")
+    .style("text-anchor", "middle")
+    .text("Date");
+
+  g.append("g")
+    .attr("class", "axis")
+    .call(yAxis)
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -graphHeight / 2)
+    .attr("y", -40)
+    .attr("fill", "black")
+    .style("text-anchor", "middle")
+    .text("Mean Temperature (K)");
+
+  // grid lines
+  g.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${graphHeight})`)
+    .call(d3.axisBottom(xScale)
+      .tickSize(-graphHeight)
+      .tickFormat("")
+    )
+    .style("stroke-dasharray", "3,3")
+    .style("opacity", 0.1);
+
+  g.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(yScale)
+      .tickSize(-graphWidth)
+      .tickFormat("")
+    )
+    .style("stroke-dasharray", "3,3")
+    .style("opacity", 0.1);
+}
 
 // legend
 function drawLegend(color) {
@@ -83,7 +230,9 @@ function drawLegend(color) {
   const legendSvg = d3
     .select("#legend")
     .attr("width", legendWidth)
-    .attr("height", legendHeight);
+    .attr("height", legendHeight+20);
+
+  legendSvg.html("");
 
   // Create a linear gradient
   const defs = legendSvg.append("defs");
@@ -128,12 +277,41 @@ function drawLegend(color) {
     .call(legendAxis);
 }
 
+//update day (moved to end)
+function update(newDay, allData, meanTemps) {
+  displayDate(newDay);
+  const dayEntry = allData.find((d) => d.day === newDay);
+  if (dayEntry) drawCanvas(dayEntry.data);
+  
+  // Highlight current day on line graph
+  if (meanTemps) {
+      d3.select("#lineGraph").selectAll(".temp-point")
+        .attr("fill", d => d.day === newDay ? "var(--highlight-color)" : "var(--accent-color)")
+        .attr("r", d => d.day === newDay ? 5 : 3);
+  }
+}
+
+// input slider
+function setupSlider(allData, meanTemps) {
+  d3.select("#date-slider").on("input", function () {
+    const newDay = +this.value;
+    update(newDay, allData, meanTemps);
+  });
+}
+
 let allData = [];
 // init
 async function init() {
   allData = await preloadData();
+  const meanTemps = calculateMeanTemperatures(allData);
+  
+  drawUSOverlay();
   drawLegend(color);
-  update(dayToDisplay);
+  drawLineGraph(meanTemps);
+  setupSlider(allData, meanTemps);
+  //update(dayToDisplay, allData, meanTemps);
+  
+  console.log("Initialization complete");
 }
 
 init();

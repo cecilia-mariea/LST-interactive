@@ -14,7 +14,7 @@
     </header>
     <h2 id="date"></h2>
     <label>
-      <em> Select date: </em>
+      <!--<em> Select date: </em> -->
       <input
         type="range"
         id="date-slider"
@@ -23,9 +23,21 @@
         value="1"
         name="Date"
     /></label>
-    <canvas id="mapCanvas" width="800" height="500"></canvas>
-    <svg id="legend"></svg>
-    <svg id="lineGraph"></svg>
+    <div class="map-container">
+      <canvas id="mapCanvas" width="800" height="500"></canvas>
+      <svg id="overlay" width="800" height="500" style="position: absolute; top: 0; left: 0; pointer-events: none;"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+    
+    <div class="legend-container">
+      <h3>Temperature Scale (Kelvin)</h3>
+      <svg id="legend" width="400" height="80"></svg>
+    </div>
+    
+    <div class="line-graph-container">
+      <h3>Mean Temperature Over Time</h3>
+      <svg id="lineGraph" width="800" height="300"></svg>
+    </div>
     <script src="./global.js" type="module"></script>
   </body>
 </html>
