@@ -3,18 +3,31 @@ html {
 }
 body {
   font: 100%/1.5 system-ui;
-  max-width: 100ch;
+  max-width: 60em;
+  min-height: 100vh;
   margin-inline: auto;
+  padding: 1em;
 
   header {
     padding: 2rem 1rem;
     text-align: center;
+    color: steelblue;
+  }
+
+  label {
+    color: gray;
   }
 
   input[type="range"] {
-    width: 100%;
+    display: flex;
+    padding: 1em;
+    width: 96%;
     accent-color: var(--accent-color);
-    height: 0.5rem;
     border-radius: 0.25rem;
+  }
+
+  svg {
+    width: 800px;
+    height: 500px;
   }
 }
