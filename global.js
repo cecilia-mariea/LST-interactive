@@ -1,5 +1,6 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 
+// config
 let dayToDisplay = 1; // in julian days
 const width = 800;
 const height = 500;
@@ -10,7 +11,7 @@ const minx = -140,
 const miny = 20,
   maxy = 55;
 
-// axes & scale
+//  useable area
 const x = d3
   .scaleLinear()
   .domain([minx, maxx])
@@ -20,6 +21,7 @@ const y = d3
   .domain([miny, maxy])
   .range([height - margin.bottom, margin.top]);
 
+// data formating
 function convertDate(jDay) {
   // convert julian day to month/day/year format for 2024
   const janFirst = new Date("2024-01-01T00:00:00Z");
@@ -36,6 +38,24 @@ function displayDate(jDay) {
   d3.select("#date").text(`Date: ${dateStr}`);
 }
 
+// load data
+const numDays = 129;
+async function preloadData() {
+  const filePromises = d3.range(1, numDays + 1).map((day) => {
+    const path = `./lib_filtered/2024_${String(day).padStart(3, "0")}_LST.json`;
+    return d3
+      .json(path)
+      .then((file) => ({
+        day,
+        data: file.data,
+      }))
+      .catch(() => null);
+  });
+  const results = await Promise.all(filePromises);
+  return results.filter((d) => d !== null);
+}
+
+// start map render
 const svg = d3.select("svg");
 
 svg
@@ -62,49 +82,117 @@ svg.append("g").attr("transform", `translate(${margin.left},0)`).call(yAxis);
 const mapGroup = svg.append("g").attr("clip-path", "url(#clip)");
 
 // Use a fixed color domain (Kelvin)
-const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([250, 330]);
+const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([250, 300]);
 
-async function renderMap(day) {
-  // load data
-  let visibleData;
-  let path = `./lib/2024_${String(day).padStart(3, "0")}_LST.json`;
+// load map
+function renderMap(day) {
+  const dayEntry = allData.find((d) => d.day === day);
+  if (!dayEntry) return;
+  let data = dayEntry.data;
+  const rectSize = 8;
+  const rects = mapGroup
+    .selectAll("rect")
+    .data(data, (d) => `${d.lon}, ${d.lat}`);
 
-  try {
-    const file = await d3.json(path);
-    const jsonData = file.data;
-    visibleData = jsonData.filter(
-      (d) => d.lon >= minx && d.lon <= maxx && d.lat >= miny && d.lat <= maxy
-    );
-
-    const sampleFraction = 0.6;
-    const subset = visibleData.filter(() => Math.random() < sampleFraction);
-
-    const rectSize = 8;
-    mapGroup.selectAll("rect").remove();
-
-    mapGroup
-      .selectAll("rect")
-      .data(subset)
-      .join("rect")
-      .attr("x", (d) => x(d.lon))
-      .attr("y", (d) => y(d.lat))
-      .attr("width", rectSize)
-      .attr("height", rectSize)
-      .attr("fill", (d) => color(d.LST));
-  } catch (error) {
-    console.error("Error loading JSON:", error);
-  }
+  rects.join(
+    (enter) =>
+      enter
+        .append("rect")
+        .attr("x", (d) => d.screenX)
+        .attr("y", (d) => d.screenY)
+        .attr("width", rectSize)
+        .attr("height", rectSize)
+        .attr("fill", (d) => color(d.LST)),
+    (update) =>
+      update
+        .transition()
+        .duration(25)
+        .attr("fill", (d) => color(d.LST)),
+    (exit) => exit.remove()
+  );
 }
 
+// update day
 function update(newDay) {
   displayDate(newDay);
   renderMap(newDay);
   dayToDisplay = newDay;
 }
 
-update(dayToDisplay);
-
+// input slider
 d3.select("#date-slider").on("input", function () {
   const newDay = +this.value;
   update(newDay);
 });
+
+// legend
+function drawLegend(color) {
+  const legendWidth = 300;
+  const legendHeight = 10;
+
+  const legendSvg = svg
+    .append("g")
+    .attr("id", "legend")
+    .attr(
+      "transform",
+      `translate(${width - legendWidth - 50}, ${height - 40})`
+    );
+
+  // Create a linear gradient
+  const defs = legendSvg.append("defs");
+  const gradient = defs
+    .append("linearGradient")
+    .attr("id", "legend-gradient")
+    .attr("x1", "0%")
+    .attr("x2", "100%")
+    .attr("y1", "0%")
+    .attr("y2", "0%");
+
+  const [min, max] = color.domain();
+  const steps = d3.range(0, 1.01, 0.1);
+  steps.forEach((t) => {
+    gradient
+      .append("stop")
+      .attr("offset", `${t * 100}%`)
+      .attr("stop-color", color(min + t * (max - min)));
+  });
+
+  // Draw the bar
+  legendSvg
+    .append("rect")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#legend-gradient)");
+
+  // Add numeric axis for temperature
+  const legendScale = d3
+    .scaleLinear()
+    .domain([min, max])
+    .range([0, legendWidth]);
+
+  const legendAxis = d3
+    .axisBottom(legendScale)
+    .ticks(5)
+    .tickFormat((d) => `${d.toFixed(0)} K`);
+
+  legendSvg
+    .append("g")
+    .attr("transform", `translate(0,${legendHeight})`)
+    .call(legendAxis);
+}
+drawLegend(color);
+
+let allData = [];
+// init
+async function init() {
+  allData = await preloadData();
+  allData.forEach((day) => {
+    day.data.forEach((d) => {
+      d.screenX = x(d.lon);
+      d.screenY = y(d.lat);
+    });
+  });
+  update(dayToDisplay);
+}
+
+init();
