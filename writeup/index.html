@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<head>
+  <link href="../styles.css" rel="stylesheet" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project 3 Writeup</title>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Visualization</a>
+    <a href="./index.html">Writeup</a>
+  </nav>
+  <h1>Project 3 Write-up</h1>
+
+  <h2>Visual Encodings</h2>
+
+  <h3>Heatmap for Spatial Temperature Distribution</h3>
+
+  <ul>
+    <li>
+      <strong>Color encoding:</strong> We used a color gradient scale (Turbo,
+      from 250 K to 300 K) to represent temperature. Any missing data was left
+      white. This allows viewers to immediately observe any spatial patterns of
+      surface temperature. We used a function to find the temperature (LST) of
+      the pixel closest to a given longitude and latitude.
+    </li>
+
+    <li>
+      <strong>Map elements:</strong> We chose a linear Cartesian projection for
+      the contiguous U.S., which creates a simple outline of the US, the area in
+      which we are looking to show patterns. We also added a color gradient
+      legend to display a reference for the colors shown.
+    </li>
+  </ul>
+
+  <h3>Line Graph for Time Series</h3>
+
+  <ul>
+    <li>
+      <strong>Position encoding:</strong> The x-axis encodes time (day/date),
+      while the y-axis encodes temperature in Kelvin.
+    </li>
+
+    <li>
+      <strong>Shape encoding:</strong> Each individual day has an associated
+      point.
+    </li>
+
+    <li>
+      <strong>Y-axis scaling:</strong> The y-axis (minimum, maximum, and range
+      of K) adjusts automatically based on the selected pixel’s associated data
+      (temperature readings over the time period), ensuring a more
+      individualized display for each longitude and latitude.
+    </li>
+  </ul>
+
+  <h3>Interaction Techniques</h3>
+
+  <ul>
+    <li>
+      <strong>Hover:</strong> Moving the mouse over the heatmap shows the
+      temperature at the hovered-upon location, depending on the day selected. A
+      tooltip provides the longitude and latitude, rounded to two decimal places
+      for succinctness, and the temperature. This is a balance between
+      expressiveness and effectiveness.
+    </li>
+
+    <li>
+      <strong>Click:</strong> Clicking a location locks it on the temperature
+      line graph so users can take a closer look at the temperature distribution
+      over time for one specific location.
+    </li>
+
+    <li>
+      <strong>Slider and Dropdown:</strong> Both elements allow viewers to
+      select a specific day of the year, and interacting with one updates the
+      other one as well as updating the heatmap for that specific day.
+    </li>
+  </ul>
+
+  <h2>Development Process</h2>
+
+  <h3>Data Preprocessing</h3>
+
+  <p>
+    The first step was pulling from the AWS API using the s3 File System. We
+    utilized this website to understand the channels available and how to path
+    to them. After, we implemented a system that downloaded the dataset if we
+    had never requested it prior or used the already local copy of the data set.
+    This allowed for fast prototyping. Then we utilized xarrays to parse the
+    large metadata sets to get the target variable, Land Surface Temperature
+    (LST). Each product of the GOES18 dataset also includes information about
+    the satellite trajectory to transform the data from the satellite axes to
+    latitude and longitude. This required use of python projection packages.
+    After transformation, we clipped the data to focus specifically around the
+    lower 48 states of the US. Taking the mean of all the LST scans taken in a
+    single day, we organized the coordinates and corresponding temperatures into
+    static JSON files (one per day). The transformation was computationally
+    expensive, so we tried reducing the resolution, but running the
+    preprocessing script for ~4 hours only resulted in 129 days of parsed data.
+  </p>
+
+  <h3>Visualizations, Style, and Interaction</h3>
+
+  <ul>
+    <li>
+      <strong>Map and Projection Setup:</strong> created a canvas for the
+      heatmap and used D3 scales for x (longitude) and y (latitude) mapping,
+      adding D3 geoTransform to map longitude/latitude to canvas pixels.
+    </li>
+
+    <li>
+      <strong>Heatmap Rendering:</strong> initiated heatmap with an overlay for
+      interaction, adding hover interactions to detect mouse:pixel location and
+      retrieve temperature data.
+    </li>
+
+    <li>
+      <strong>Line Graph Development:</strong> built an SVG line graph with
+      dynamic y-scaling, line and point differentiation.
+    </li>
+
+    <li>
+      <strong>Interaction:</strong> connected hover, click, slider, and dropdown
+      events to update heatmap and line graph dynamically.
+    </li>
+  </ul>
+
+  <h3>Alternate Considerations/Extras</h3>
+
+  <ul>
+    <li>
+      We considered displaying the mean temperature line in the background for
+      the line graph but removed it because it contributed to visual clutter and
+      was additionally not super relevant to the user.
+    </li>
+
+    <li>
+      We explored displaying the line plot on the tooltip with hover, but this
+      was too visually overwhelming with mouse movement and caused a lot of
+      crashes. The plot on the side allows us to balance effectiveness and
+      expressiveness.
+    </li>
+    <li>
+      A beta version of the website implemented the heatmap using rectangle svg
+      elements instead of pixle elements embedded with the html canvas tag.
+      Interaction was very slow and the resolution of vector graphics was not
+      necessary. We even tried randomly sampling some the data to enforce more
+      sparse representations, preloading all files, pre calculating each
+      tranformation of lon/lat onto the axes, etc. We reimplemented before final
+      deployment.
+    </li>
+  </ul>
+
+  <h3>Reflection</h3>
+
+  <p>
+    We spent around 8 hours for data preprocessing and 8 hours for javascript
+    development. Other logistics took 2-3 hours (ie submissions, meetings, etc).
+    Data preprocessing and javascript development took the most time equally.
+    Data preprocessing was difficult considering the immense resolution of the
+    GOES datasets, transforming and projecting geospatial data, and we had never
+    worked with the AWS API before this. Developing the visualizations with d3
+    required a many rounds of debugging as each feature was adding. Many
+    features are dynamically updated as the user interacts with the site, but
+    this required global tracking of the current visible data and organization
+    amongst exportable functions.
+  </p>
+  <p>
+    Member A handled preprocessing the data with python, pulling from the GOES
+    API. They also initially implemented the heatmap, 'filter by day
+    functionality', and json wrangling upon site initialization. Member B
+    completed the remaining interactive elements: US overlay, time series time
+    graph, dropdown menu, and hovering tooltip. Member C/D helped with
+    brainstorming, attended meetings, and added final touches. This required
+    constant communication about git deployments.
+  </p>
+</body>
