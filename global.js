@@ -28,6 +28,7 @@ export let pixelTimeSeries = { lat: null, lon: null, values: [] };
 let allData = [];
 let meanTemps = [];
 let clickLocked = false;
+let hasInteracted = false;
 
 //tooltip setup
 const tooltip = d3.select("body").append("div")
@@ -126,6 +127,10 @@ async function init() {
   updateHeatmapDay(initialDay, allData, meanTemps);
 
   const title = d3.select("#pixel-graph-title");
+  const instruction = d3.select("#map-instruction");
+  
+  // Set initial instruction text
+  title.text("Instruction: Click/hover on a spot on the map to explore temperature over time");
 
   // canvas hover interaction
   canvas.addEventListener("mousemove", (e) => {
@@ -147,23 +152,36 @@ async function init() {
     .style("top", `${e.pageY + 10}px`)
     .html(`Lon: ${lon.toFixed(2)}, Lat: ${lat.toFixed(2)}<br>LST: ${lst?.toFixed(2)} K`);
 
+  // Hide instruction permanently on first interaction
+  if (!hasInteracted) {
+    hasInteracted = true;
+    title.text("");
+  }
+
   if (!clickLocked) {
     clearPixelGraph();
     pixelTimeSeries = { lat, lon, values: allData.map(d => findClosestTemp(d.data, lon, lat)) };
     drawPixelTimeSeries(pixelTimeSeries, allData, slider.property("value"));
-    d3.select("#pixel-graph-title").text(`Temperature at ${lon.toFixed(2)}, ${lat.toFixed(2)} Over Time`);
+    title.text(`Temperature at ${lon.toFixed(2)}, ${lat.toFixed(2)} Over Time`);
   }
 });
 
 canvas.addEventListener("mouseleave", () => {
     tooltip.style("display","none");
-    if (!clickLocked) clearPixelGraph();
-    if (!clickLocked) title.text("Temperature at Selected Location Over Time");
+    if (!clickLocked) {
+      clearPixelGraph();
+      if (hasInteracted) title.text("");
+    }
   });
 
 // click to “lock” the current pixel selection
 canvas.addEventListener("click", (e) => {
   clickLocked = true;
+  
+  // Hide instruction permanently on first interaction
+  if (!hasInteracted) {
+    hasInteracted = true;
+  }
   
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left;
@@ -183,6 +201,7 @@ canvas.addEventListener("click", (e) => {
     if (!canvas.contains(e.target)) {
       clickLocked = false;
       clearPixelGraph();
+      if (hasInteracted) title.text("");
     }
 
 });
