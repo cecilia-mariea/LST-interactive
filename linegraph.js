@@ -88,9 +88,6 @@ export function drawPixelTimeSeries(pixelData, allData) {
 
   
   }
-
-
-// Clears only hover/click lines
 export function clearPixelGraph() {
   if (lineGroup) lineGroup.html("");
 }
