@@ -11,40 +11,39 @@ body {
   min-height: 100vh;
   margin-inline: auto;
   padding: 1em;
+}
 
-  header {
-    padding: 2rem 1rem;
-    text-align: center;
-    color: steelblue;
-  }
+header {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: steelblue;
+}
 
-  label {
-    color: gray;
-    display: block;
-    margin: 1rem 0;
-  }
+label {
+  color: gray;
+  display: block;
+  margin: 1rem 0;
+}
 
-  input[type="range"] {
-    display: flex;
-    padding: 1em;
-    width: 96%;
-    accent-color: var(--accent-color);
-    border-radius: 0.25rem;
-  }
+input[type="range"] {
+  padding: 1em;
+  width: 96%;
+  accent-color: var(--accent-color);
+}
 
 .map-container {
   position: relative;
   margin: 2rem auto;
   width: 800px;
   height: 500px;
-  background: white; 
+  background: white;
 }
 
 #mapCanvas {
   border: 1px solid #ccc;
   display: block;
   position: relative;
-  z-index: 1; 
+  z-index: 1;
 }
 
 #overlay {
@@ -52,9 +51,8 @@ body {
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 2; 
+  z-index: 10;
 }
-
 
 .legend-container {
   margin: 2rem auto;
@@ -72,92 +70,53 @@ body {
   margin: 0 auto;
 }
 
-.line-graph-container {
-  margin: 3rem auto;
+.pixel-line-graph-container {
+  margin: 2rem auto;
   text-align: center;
   width: 800px;
 }
 
-.line-graph-container h3 {
-  margin-bottom: 1rem;
-  color: var(--axis-color);
-}
-
-#lineGraph {
+#pixelGraph {
   display: block;
   margin: 0 auto;
 }
 
-.temperature-line {
-  stroke: var(--accent-color);
-  stroke-width: 2;
-  fill: none;
-}
-
-.temp-point {
-  fill: var(--accent-color);
-  stroke: #fff;
-  stroke-width: 1;
-  transition: all 0.2s ease;
-}
-
-.temp-point:hover {
-  stroke-width: 2;
-}
-
-.us-overlay {
-  fill: none;
-  stroke: #333;
-  stroke-width: 0.8;
-  opacity: 0.7;
-}
-
-.axis-label {
-  font-size: 12px;
-  fill: var(--axis-color);
-  font-weight: bold;
-}
-
-.grid {
-  stroke: var(--grid-color);
-  stroke-dasharray: 3,3;
-}
-
 .tooltip {
   position: absolute;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
+  background: white;
+  color: var(--grid-color);
+  padding: 6px 10px;
   border-radius: 4px;
-  pointer-events: none;
   font-size: 12px;
+  pointer-events: none;
   display: none;
   z-index: 100;
 }
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: var(--axis-color);
-  shape-rendering: crispEdges;
-}
-
-.axis text {
-  font-size: 11px;
-  fill: var(--axis-color);
-}
 
 @media (max-width: 850px) {
   .map-container,
-  .line-graph-container {
+  .pixel-line-graph-container {
     width: 95%;
   }
-  
+
   #mapCanvas,
   #overlay,
-  #lineGraph {
+  #pixelGraph {
     width: 100%;
     height: auto;
   }
 }
+
+.heatmap-and-graph {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
 }
+
+.pixel-line-graph-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
