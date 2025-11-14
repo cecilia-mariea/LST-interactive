@@ -1,7 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import { drawUSOverlay} from "./usmap.js";
-import { drawCanvas, drawLegend, updateHeatmapDay } from "./heatmap.js";
-import { drawPixelTimeSeries } from "./linegraph.js";
+import { drawCanvas, drawLegendOnHeatmap, updateHeatmapDay } from "./heatmap.js";
+import { drawLineGraph, drawPixelTimeSeries, clearPixelGraph } from "./linegraph.js";
 
 //defining global variables & projections
 export const canvas = document.getElementById("mapCanvas");
@@ -27,6 +27,7 @@ export const numDays = 129;
 export let pixelTimeSeries = { lat: null, lon: null, values: [] };
 let allData = [];
 let meanTemps = [];
+let clickLocked = false;
 
 //tooltip setup
 const tooltip = d3.select("body").append("div")
@@ -86,22 +87,49 @@ async function init() {
 
   drawUSOverlay();
   drawCanvas(allData[0].data);
-  drawLegend();
-
-  const slider = d3.select("#date-slider");
+  drawLegendOnHeatmap();
+  drawLineGraph(meanTemps, allData, "Temperature (K)", "Day"); 
 
   // date display and initial heatmap
-  const initialDay = 1;
-  displayDate(initialDay);
-  updateHeatmapDay(initialDay, allData, meanTemps);
+  const slider = d3.select("#date-slider");
+  const dateDropdown = d3.select("#date-dropdown");
   slider.on("input", function() {
     const day = +this.value;
-    displayDate(day);
-    updateHeatmapDay(day, allData, meanTemps);
+  dateDropdown.property("value", day);  // sync dropdown
+  displayDate(day);
+  updateHeatmapDay(day, allData, meanTemps);
+  if (pixelTimeSeries.lat !== null) {
+    drawPixelTimeSeries(pixelTimeSeries, allData);
+  }
 });
 
-  // canvas click
+  dateDropdown.selectAll("option")
+    .data(allData)
+    .enter()
+    .append("option")
+    .attr("value", d => d.day)
+    .text(d => convertDate(d.day));
+  dateDropdown.on("change", function() {
+    const day = +this.value;
+    slider.property("value", day);
+    displayDate(day);
+    updateHeatmapDay(day, allData, meanTemps);
+    if (pixelTimeSeries.lat !== null) {
+      drawPixelTimeSeries(pixelTimeSeries, allData);
+    }
+  });
+
+  const initialDay = 1;
+  slider.property("value", initialDay);
+  dateDropdown.property("value", initialDay);
+  displayDate(initialDay);
+  updateHeatmapDay(initialDay, allData, meanTemps);
+
+  const title = d3.select("#pixel-graph-title");
+
+  // canvas hover interaction
   canvas.addEventListener("mousemove", (e) => {
+    
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left;
   const cy = e.clientY - rect.top;
@@ -109,30 +137,34 @@ async function init() {
   const lon = x.invert(cx);
   const lat = y.invert(cy);
 
-  const dayEntry = allData[d3.select("#date-slider").property("value") - 1];
+  const dayEntry = allData[slider.property("value") - 1];
   const lst = findClosestTemp(dayEntry.data, lon, lat);
-
-  // tooltip
+  
+  //tooltip display
   tooltip
     .style("display", "block")
     .style("left", `${e.pageX + 10}px`)
     .style("top", `${e.pageY + 10}px`)
     .html(`Lon: ${lon.toFixed(2)}, Lat: ${lat.toFixed(2)}<br>LST: ${lst?.toFixed(2)} K`);
 
-  // line graph updating dynamically on hover
-  pixelTimeSeries = {
-    lat,
-    lon,
-    values: allData.map(day => findClosestTemp(day.data, lon, lat))
-  };
-
-  drawPixelTimeSeries(pixelTimeSeries);
+  if (!clickLocked) {
+    clearPixelGraph();
+    pixelTimeSeries = { lat, lon, values: allData.map(d => findClosestTemp(d.data, lon, lat)) };
+    drawPixelTimeSeries(pixelTimeSeries, allData, slider.property("value"));
+    d3.select("#pixel-graph-title").text(`Temperature at ${lon.toFixed(2)}, ${lat.toFixed(2)} Over Time`);
+  }
 });
 
-canvas.addEventListener("mouseleave", () => tooltip.style("display", "none"));
+canvas.addEventListener("mouseleave", () => {
+    tooltip.style("display","none");
+    if (!clickLocked) clearPixelGraph();
+    if (!clickLocked) title.text("Temperature at Selected Location Over Time");
+  });
 
 // click to “lock” the current pixel selection
 canvas.addEventListener("click", (e) => {
+  clickLocked = true;
+  
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left;
   const cy = e.clientY - rect.top;
@@ -140,13 +172,19 @@ canvas.addEventListener("click", (e) => {
   const lon = x.invert(cx);
   const lat = y.invert(cy);
 
-  pixelTimeSeries = {
-    lat,
-    lon,
-    values: allData.map(day => findClosestTemp(day.data, lon, lat))
-  };
+  
+  pixelTimeSeries = { lat, lon, values: allData.map(d => findClosestTemp(d.data, lon, lat)) };
+  drawPixelTimeSeries(pixelTimeSeries, allData,slider.property("value"));
+  title.text(`Temperature at ${lon.toFixed(2)}, ${lat.toFixed(2)} Over Time`);
+});
 
-  drawPixelTimeSeries(pixelTimeSeries);
+
+  d3.select("body").on("click", function(e){
+    if (!canvas.contains(e.target)) {
+      clickLocked = false;
+      clearPixelGraph();
+    }
+
 });
 }
 

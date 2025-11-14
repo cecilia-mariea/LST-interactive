@@ -10,32 +10,28 @@
 
 <body>
   <header>
-    <h1>
-      Land Surface Temperature Across the Continguous United States in 2024
-    </h1>
+    <h1>Land Surface Temperature Across the Contiguous United States in 2024</h1>
   </header>
   <h2 id="date"></h2>
+
   <label>
-    <!--<em> Select date: </em> -->
-    <input type="range" id="date-slider" min="1" max="129" value="1" name="Date" /></label>
+    <select id="date-dropdown"></select>
+    <input type="range" id="date-slider" min="1" max="129" value="1" name="Date" />
+  </label>
+
   <div class="heatmap-and-graph">
-  <div class="map-container">
-    <canvas id="mapCanvas" width="800" height="500"></canvas>
-    <svg id="overlay" width="800" height="500" style="position:absolute;top:0;left:0;"></svg>
+    <div class="map-container">
+      <canvas id="mapCanvas" width="800" height="500"></canvas>
+      <svg id="overlay" width="800" height="500"></svg> <!-- Legend will be drawn here -->
+    </div>
+
+    <div class="pixel-line-graph-container">
+      <h3 id="pixel-graph-title">Temperature at Selected Location Over Time</h3>
+      <svg id="pixelGraph" width="400" height="500"></svg>
+    </div>
   </div>
 
-  <div class="pixel-line-graph-container">
-    <h3>Temperature at Selected Location Over Time</h3>
-    <svg id="pixelGraph" width="400" height="500"></svg>
-  </div>
-</div>
-<div id="tooltip" class="tooltip"></div>
-
-
-  <div class="legend-container">
-    <h3>Temperature Scale (Kelvin)</h3>
-    <svg id="legend" width="400" height="80"></svg>
-  </div>
+  <div id="tooltip" class="tooltip"></div>
 
   <script src="./global.js" type="module"></script>
 </body>

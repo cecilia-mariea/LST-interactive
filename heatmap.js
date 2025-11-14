@@ -13,43 +13,76 @@ export function drawCanvas(data) {
   }
 }
 
+export function drawLegendOnHeatmap() {
+  const svg = d3.select("#overlay");
 
-export function drawLegend() {
-  const svg = document.querySelector("#legend");
-  svg.innerHTML = "";
+  // Remove old legend if exists
+  svg.select("#legend-gradient-group").remove();
 
-  const w = 350, h = 20;
-  const ns = "http://www.w3.org/2000/svg";
+  const svgWidth = +svg.attr("width");
+  const svgHeight = +svg.attr("height");
 
-  const defs = document.createElementNS(ns, "defs");
-  const gradient = document.createElementNS(ns, "linearGradient");
-  gradient.setAttribute("id", "legGradient");
-  gradient.setAttribute("x1", "0%");
-  gradient.setAttribute("x2", "100%");
-  defs.appendChild(gradient);
-  svg.appendChild(defs);
+  const legendWidth = 30;       // narrower
+  const legendHeight = svgHeight * 0.5; // shorter
+  const margin = { top: 150, left: 50 }; // position in left margin
 
-  for (let t = 0; t <= 1; t += 0.02) {
-    const stop = document.createElementNS(ns, "stop");
-    stop.setAttribute("offset", `${t*100}%`);
-    stop.setAttribute("stop-color", color(250 + t*50));
-    gradient.appendChild(stop);
+  // Gradient
+  const defs = svg.select("defs").empty() ? svg.append("defs") : svg.select("defs");
+  const gradient = defs.select("#legend-gradient").empty()
+    ? defs.append("linearGradient").attr("id", "legend-gradient")
+    : defs.select("#legend-gradient");
+
+  gradient
+    .attr("x1", "0%").attr("y1", "100%")
+    .attr("x2", "0%").attr("y2", "0%");
+
+  const nStops = 10;
+  const legendDomain = color.domain();
+  const step = (legendDomain[1] - legendDomain[0]) / nStops;
+
+  gradient.selectAll("stop").remove();
+  for (let i = 0; i <= nStops; i++) {
+    const value = legendDomain[0] + i * step;
+    gradient.append("stop")
+      .attr("offset", `${(i / nStops) * 100}%`)
+      .attr("stop-color", color(value));
   }
 
-  const rectEl = document.createElementNS(ns, "rect");
-  rectEl.setAttribute("width", w);
-  rectEl.setAttribute("height", h);
-  rectEl.setAttribute("fill", "url(#legGradient)");
-  svg.appendChild(rectEl);
+  // Draw vertical legend rectangle
+  const legendGroup = svg.append("g").attr("id", "legend-gradient-group");
+    legendGroup.append("text")
+    .attr("x", margin.left + legendWidth / 2)
+    .attr("y", margin.top + legendHeight + 30)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#333")
+    .style("font-size", "15px")
+    .style("font-weight", "bold")
+    .text("Temperature (K)");
 
-  const scale = d3.scaleLinear().domain([250, 300]).range([0, w]);
-  const axis = d3.axisBottom(scale).ticks(5);
+  legendGroup.append("rect")
+    .attr("x", margin.left)
+    .attr("y", margin.top)
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#legend-gradient)")
+    .style("stroke", "#333")
+    .style("stroke-width", 1);
 
-  const axisG = d3.select(svg).append("g")
-    .attr("transform", `translate(0,${h})`)
-    .call(axis);
+  // Scale for ticks
+  const legendScale = d3.scaleLinear()
+    .domain(legendDomain)
+    .range([legendHeight + margin.top, margin.top]);
+
+  const legendAxis = d3.axisLeft(legendScale)
+    .ticks(6)
+    .tickSize(5);
+
+  legendGroup.append("g")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(legendAxis)
+    .selectAll("text")
+    .style("font-size", "12px");
 }
-
 export function updateHeatmapDay(day, allData, meanTemps) {
   const entry = allData.find(d => d.day === day);
   if (entry) drawCanvas(entry.data);
